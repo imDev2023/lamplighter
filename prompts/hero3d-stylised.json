@@ -1,0 +1,15 @@
+{
+ "image_urls": [
+  "https://v3b.fal.media/files/b/0ab19b41/ru4uOjpM6_XZie-z8S9rp_front.png",
+  "https://v3b.fal.media/files/b/0ab19b42/oQ-cGRSv849lfb83WeDXB_left.png",
+  "https://v3b.fal.media/files/b/0ab19b42/wvxEvMFolK0ai4ndJxnut_back.png",
+  "https://v3b.fal.media/files/b/0ab19b42/2uA8nplveCd6GGmgsqAu5_right.png"
+ ],
+ "geometry_quality": "detailed",
+ "texture_quality": "detailed",
+ "pbr": true,
+ "texture": true,
+ "texture_alignment": "original_image",
+ "model_seed": 7201,
+ "texture_seed": 7201
+}

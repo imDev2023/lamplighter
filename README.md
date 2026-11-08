@@ -14,7 +14,8 @@ No game code is written until the owner approves the samples, judged against Ken
 2. **The hero's 4-view sheets** (done, one per style), cut into the views image-to-3D reads.
    ![Stylised views: front, left, back, right](samples/views-stylised.jpg)
    ![Painted views: front, left, back, right](samples/views-painted.jpg)
-3. The hero lifted to 3D, cut to a phone budget, rigged and running.
+3. **The hero in 3D** (done, both styles): lifted with Tripo H3.1 from the four views, simplified to about 24,000 triangles with its own textures, rigged with Mixamo bone names and given a run cycle and a jump pose in code; 459 KB and 652 KB compressed.
+   Look at them with `npm run dev`, then `/check.html?src=/models/hero-stylised.glb&src=/models/hero-painted.glb&gap=1.2&clip=run`.
 4. The hero running on one textured, dressed stretch of rooftop in Three.js at 390 x 844.
 
 ## Tools
@@ -23,7 +24,11 @@ No game code is written until the owner approves the samples, judged against Ken
 - `node tools/fal-usage.ts <endpoint> <start> <end>`: fal's exact charge for a time window.
 - `node tools/fal-upload.ts <file>`: upload one of our own files to fal's storage as a reference image (free).
 - `python3 -I tools/cut_views.py <sheet> <out_dir>`: cut a 4-view sheet into front, left, back and right views on a flat canvas (usage in its docstring).
-- `tools/lowpoly_bake.py`: cut a generated model to a phone budget in headless Blender (usage in its docstring).
+- `tools/simplify.sh in.glb out.glb`: cut a single-atlas generated model (a Tripo output) to a phone budget, keeping its own UVs and textures.
+- `tools/rig_hero.py`: rig an A-posed humanoid in headless Blender with Mixamo bone names and key a run cycle and a jump pose (usage in its docstring).
+- `node tools/polyhaven.ts <asset> [1k|2k]`: download a CC0 Poly Haven texture set into `public/textures`.
+- `check.html`: a Three.js page that loads GLBs side by side, plays a clip and frames a set view (parameters in `src/check/main.ts`).
+- `tools/lowpoly_bake.py`: cut a model with several materials or overlapping UVs to a phone budget by baking in headless Blender (usage in its docstring); its cage suits props, not faces.
 
 ## Licence
 

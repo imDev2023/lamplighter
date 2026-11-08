@@ -6,6 +6,8 @@
 // the model key FAL_KEY cannot read usage. Widen the window by a minute or two on each
 // side of the call's `started` time in fal-log.json, since usage is bucketed.
 
+export {};
+
 const [endpoint, start, end] = process.argv.slice(2);
 if (!endpoint || !start || !end) throw new Error('usage: node tools/fal-usage.ts <endpoint> <start ISO> <end ISO>');
 const key = process.env.FAL_BILLING_KEY;

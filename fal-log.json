@@ -180,5 +180,131 @@
   "files": [
    "raw/sheet-painted.png"
   ]
+ },
+ {
+  "name": "hero3d-stylised",
+  "endpoint": "tripo3d/h3.1/multiview-to-3d",
+  "started": "2026-11-08T06:03:12.430Z",
+  "seconds": 206.9,
+  "request_id": "01a1b9c0-f45b-7720-9073-f28ff28fe2a7",
+  "billing": {
+   "x-fal-billable-units": "60",
+   "x-fal-request-id": "01a1b9c0-f45b-7720-9073-f28ff28fe2a7",
+   "x-fal-served-from": "56e205f4-2398-436a-a042-f7f7993de025"
+  },
+  "arguments": {
+   "image_urls": [
+    "https://v3b.fal.media/files/b/0ab19b41/ru4uOjpM6_XZie-z8S9rp_front.png",
+    "https://v3b.fal.media/files/b/0ab19b42/oQ-cGRSv849lfb83WeDXB_left.png",
+    "https://v3b.fal.media/files/b/0ab19b42/wvxEvMFolK0ai4ndJxnut_back.png",
+    "https://v3b.fal.media/files/b/0ab19b42/2uA8nplveCd6GGmgsqAu5_right.png"
+   ],
+   "geometry_quality": "detailed",
+   "texture_quality": "detailed",
+   "pbr": true,
+   "texture": true,
+   "texture_alignment": "original_image",
+   "model_seed": 7201,
+   "texture_seed": 7201
+  },
+  "result": {
+   "model_mesh": {
+    "url": "https://v3b.fal.media/files/b/0ab19b53/coUKCO2jhCiJfb-vW_DaU_model.glb",
+    "content_type": "model/gltf-binary",
+    "file_name": "model.glb",
+    "file_size": 60194600
+   },
+   "model_urls": {
+    "glb": {
+     "url": "https://v3b.fal.media/files/b/0ab19b53/coUKCO2jhCiJfb-vW_DaU_model.glb",
+     "content_type": "model/gltf-binary",
+     "file_name": "model.glb",
+     "file_size": 60194600
+    },
+    "fbx": null,
+    "base_model": null,
+    "pbr_model": {
+     "url": "https://v3b.fal.media/files/b/0ab19b53/coUKCO2jhCiJfb-vW_DaU_model.glb",
+     "content_type": "model/gltf-binary",
+     "file_name": "model.glb",
+     "file_size": 60194600
+    }
+   },
+   "rendered_image": {
+    "url": "https://v3b.fal.media/files/b/0ab19b54/QRFzbJhnftjO5PHhjTR2j_preview.png",
+    "content_type": "image/png",
+    "file_name": "preview.png",
+    "file_size": 102012
+   },
+   "task_id": "8b0f3a72-1904-425f-a272-177ab14c596a"
+  },
+  "files": [
+   "raw/hero3d-stylised-1.glb",
+   "raw/hero3d-stylised-2.glb",
+   "raw/hero3d-stylised-3.glb",
+   "raw/hero3d-stylised-4.png"
+  ]
+ },
+ {
+  "name": "hero3d-painted",
+  "endpoint": "tripo3d/h3.1/multiview-to-3d",
+  "started": "2026-11-08T06:06:52.289Z",
+  "seconds": 192.8,
+  "request_id": "01a1b9c4-4f0f-7be2-9e53-4db48e495961",
+  "billing": {
+   "x-fal-billable-units": "60",
+   "x-fal-request-id": "01a1b9c4-4f0f-7be2-9e53-4db48e495961",
+   "x-fal-served-from": "eaabc089-f64d-4e25-baa7-75f59b7853bd"
+  },
+  "arguments": {
+   "image_urls": [
+    "https://v3b.fal.media/files/b/0ab19b42/tXBq4rPNYhnj3IzT6knDK_front.png",
+    "https://v3b.fal.media/files/b/0ab19b42/TECloLan-nrYwXXQ6wslg_left.png",
+    "https://v3b.fal.media/files/b/0ab19b42/MsJui5774RwQbrUh7i6o4_back.png",
+    "https://v3b.fal.media/files/b/0ab19b43/d34Hj1QbeNv1H6QUwhE-1_right.png"
+   ],
+   "geometry_quality": "detailed",
+   "texture_quality": "detailed",
+   "pbr": true,
+   "texture": true,
+   "texture_alignment": "original_image",
+   "model_seed": 7202,
+   "texture_seed": 7202
+  },
+  "result": {
+   "model_mesh": {
+    "url": "https://v3b.fal.media/files/b/0ab19b69/Qu1XV9zv2_Y2I015E45px_model.glb",
+    "content_type": "model/gltf-binary",
+    "file_name": "model.glb",
+    "file_size": 65606164
+   },
+   "model_urls": {
+    "glb": {
+     "url": "https://v3b.fal.media/files/b/0ab19b69/Qu1XV9zv2_Y2I015E45px_model.glb",
+     "content_type": "model/gltf-binary",
+     "file_name": "model.glb",
+     "file_size": 65606164
+    },
+    "fbx": null,
+    "base_model": null,
+    "pbr_model": {
+     "url": "https://v3b.fal.media/files/b/0ab19b69/Qu1XV9zv2_Y2I015E45px_model.glb",
+     "content_type": "model/gltf-binary",
+     "file_name": "model.glb",
+     "file_size": 65606164
+    }
+   },
+   "rendered_image": {
+    "url": "https://v3b.fal.media/files/b/0ab19b6a/F6gxLfIrUWY-7jpKY7NEz_preview.png",
+    "content_type": "image/png",
+    "file_name": "preview.png",
+    "file_size": 114465
+   },
+   "task_id": "603a522d-1594-4ce5-b3af-b4c39af27ab3"
+  },
+  "files": [
+   "raw/hero3d-painted-1.glb",
+   "raw/hero3d-painted-2.png"
+  ]
  }
 ]

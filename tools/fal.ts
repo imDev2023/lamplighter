@@ -47,7 +47,10 @@ mkdirSync('raw', { recursive: true });
 const files: string[] = [];
 const urls: string[] = [];
 const walk = (v: unknown): void => {
-  if (typeof v === 'string' && /^https:\/\/\S+\.(mp4|webm|png|jpg|jpeg|webp|glb|mp3|wav)$/i.test(v)) urls.push(v);
+  // A result can list one file in several places (Tripo's model_mesh and model_urls): save it once.
+  if (typeof v === 'string' && /^https:\/\/\S+\.(mp4|webm|png|jpg|jpeg|webp|glb|fbx|mp3|wav)$/i.test(v)) {
+    if (!urls.includes(v)) urls.push(v);
+  }
   else if (v && typeof v === 'object') Object.values(v).forEach(walk);
 };
 walk(body);

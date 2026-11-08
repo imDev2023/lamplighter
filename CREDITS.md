@@ -4,7 +4,13 @@ Every asset the repo holds or the game ships, with its source and terms.
 
 ## Shipped in the game
 
-Nothing yet: the game is at the samples stage.
+The game is at the samples stage; these are used by the sample pages.
+
+| Asset | Source | Terms |
+| --- | --- | --- |
+| Three.js r186 | [three.js](https://threejs.org/), npm `three@0.186.1` | MIT |
+| `public/models/hero-stylised.glb`, `public/models/hero-painted.glb` | Generated on fal with `tripo3d/h3.1/multiview-to-3d` on 2026-11-08 from the views in `samples/views-*.jpg` (requests `01a1b9c0-f45b-7720-9073-f28ff28fe2a7` and `01a1b9c4-4f0f-7be2-9e53-4db48e495961`, 0.60 USD each), then simplified by `tools/simplify.sh`, rigged and animated by `tools/rig_hero.py`, and compressed with `gltf-transform optimize` | Tripo's and fal's output terms; our part is CC0 1.0 |
+| `public/textures/grey_roof_tiles`, `painted_plaster_wall`, `dark_planks`, `japanese_stone_wall`, `mossy_cobblestone` | [Poly Haven](https://polyhaven.com/textures), 1k, fetched by `tools/polyhaven.ts` | CC0 1.0 |
 
 ## Reference only, not shipped
 

@@ -22,7 +22,10 @@ Where the work stands and what is next lives in issue #7's Status section and it
   Keep the hair tied back and the clothes fitted, since generators handle loose hair and cloth badly.
 - Check which way each profile on a sheet faces before cutting it with `tools/cut_views.py`: a left view faces the image's left edge.
   Both of the first sheets drew the left profile twice although the prompt spelled out both sides, so the right view is the left one mirrored.
-- Cut every generated or scanned model to its phone budget with `tools/lowpoly_bake.py` (headless Blender; usage in its docstring), then `gltf-transform optimize`.
+- Cut a single-atlas generated model (every Tripo output so far) with `tools/simplify.sh`, which keeps its own UVs and textures; `tools/lowpoly_bake.py` left seams and dark blotches on the hero's face (2026-11-08), since its cage reaches 2% of the model's size and hits the hair from the forehead.
+  Use the bake tool only for models with several materials or overlapping UVs, then `gltf-transform optimize --simplify false` for both.
+- Rig with `tools/rig_hero.py`: bone heat weighted nothing on the generated mesh's layered cloth, so it solves on a watertight voxel copy and transfers the weights.
+  Check every rig in `check.html` with `&bones`, from the side at several `t`, and up close on the face.
 - When the game is built, carry over Lantern River's rules: integers only in `src/sim/`, no clock, no `Math.random`, chunks from the seed and their index, stages as data, `replay(stage, record)` as the server's check, and `?debug` checking that drawing never writes into the rules' state.
 - Nothing touches a chain until the game is built.
 - Licence (owner, 2026-11-07, same as Dockstack and Lantern River): code MIT No Attribution, our assets CC0.
