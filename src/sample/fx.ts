@@ -4,16 +4,26 @@
 
 import * as THREE from 'three';
 
-/** A sky dome that follows the camera: indigo above, haze at the horizon, stars and a moon. */
+/** The sun's direction just after sunset: low, ahead and to the left of the run. */
+export const SUN_DIR = new THREE.Vector3(-0.42, 0.05, -0.9).normalize();
+
+/**
+ * An early-evening sky dome that follows the camera: the afterglow of a sun just set ahead
+ * on the left, warm at that horizon and dusty pink around it, lavender blue overhead, and the
+ * first faint stars high up. (Lamplighter's sample: the owner asked for evening coming on,
+ * not night, on 2026-11-08.)
+ */
 export function createSky(): THREE.Mesh {
   const mat = new THREE.ShaderMaterial({
     side: THREE.BackSide,
     depthWrite: false,
     fog: false,
     uniforms: {
-      zenith: { value: new THREE.Color(0x04102a) },
-      horizon: { value: new THREE.Color(0x1d3b63) },
-      moonDir: { value: new THREE.Vector3(-0.35, 0.42, -0.84).normalize() },
+      zenith: { value: new THREE.Color(0x1f3c80) },
+      mid: { value: new THREE.Color(0x6276b8) },
+      horizon: { value: new THREE.Color(0xd8a0a8) },
+      glow: { value: new THREE.Color(0xffb070) },
+      sunDir: { value: SUN_DIR },
     },
     vertexShader: /* glsl */ `
       varying vec3 vDir;
@@ -24,24 +34,27 @@ export function createSky(): THREE.Mesh {
     `,
     fragmentShader: /* glsl */ `
       uniform vec3 zenith;
+      uniform vec3 mid;
       uniform vec3 horizon;
-      uniform vec3 moonDir;
+      uniform vec3 glow;
+      uniform vec3 sunDir;
       varying vec3 vDir;
       float hash(vec3 p) { return fract(sin(dot(p, vec3(12.9898, 78.233, 37.719))) * 43758.5453); }
       void main() {
         vec3 d = normalize(vDir);
         float h = clamp(d.y, -0.2, 1.0);
-        vec3 col = mix(horizon, zenith, smoothstep(-0.02, 0.55, h));
-        // Stars on a grid of cells, each lit or not by its hash, fading into the haze.
+        vec3 col = mix(horizon, mid, smoothstep(0.0, 0.22, h));
+        col = mix(col, zenith, smoothstep(0.12, 0.55, h));
+        // The afterglow: warm along the horizon towards the set sun, strongest just above it.
+        float toward = max(dot(normalize(vec3(d.x, 0.0, d.z)), normalize(vec3(sunDir.x, 0.0, sunDir.z))), 0.0);
+        float band = exp(-max(h, 0.0) * 9.0) * pow(toward, 3.0);
+        col = mix(col, glow, band * 0.85);
+        col += glow * pow(max(dot(d, sunDir), 0.0), 60.0) * 0.5;
+        // A few faint stars, only high up where the sky is darkest.
         vec3 q = d * 220.0;
         vec3 cell = floor(q);
-        float r = hash(cell);
-        float star = step(0.9972, r) * smoothstep(0.42, 0.0, length(fract(q) - 0.5));
-        col += star * (0.6 + 1.6 * hash(cell + 3.1)) * smoothstep(0.08, 0.35, h);
-        // The moon and its halo, bright enough to bloom.
-        float m = dot(d, moonDir);
-        col += vec3(1.0, 0.95, 0.85) * smoothstep(0.99975, 0.9999, m) * 0.7;
-        col += vec3(0.45, 0.55, 0.75) * pow(max(m, 0.0), 400.0) * 0.3;
+        float star = step(0.9985, hash(cell)) * smoothstep(0.42, 0.0, length(fract(q) - 0.5));
+        col += star * 0.35 * smoothstep(0.45, 0.8, h);
         gl_FragColor = vec4(col, 1.0);
       }
     `,

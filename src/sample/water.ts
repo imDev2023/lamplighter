@@ -55,7 +55,7 @@ const shader = {
       textureMatrix: { value: null },
       tNormal: { value: null },
       time: { value: 0 },
-      deep: { value: new THREE.Color(0x0c1912) },
+      deep: { value: new THREE.Color(0x1c2a3c) },
       poolColor: { value: new THREE.Color(0xffa25a) },
       pools: { value: Array.from({ length: POOLS }, () => new THREE.Vector4()) },
     },

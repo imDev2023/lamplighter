@@ -130,6 +130,25 @@ function house(group: THREE.Group, kit: Kit, mats: Mats, cx: number, z0: number,
     if (sign < 0) g.setIndex([0, 2, 1]);
     g.computeVertexNormals();
     group.add(new THREE.Mesh(g, kit.plaster));
+    // Timber on the gable: a tie beam at the eaves, a king post up to the ridge, two struts
+    // and a small vent, so a gable seen up close over an alley is not a blank wall.
+    const out = sign * 0.05;
+    const tie = new THREE.Mesh(box(HALF * 2, 0.18, 0.1, 1.5), kit.timber);
+    tie.position.set(cx, eave + 0.05, z + out);
+    group.add(tie);
+    const king = new THREE.Mesh(box(0.16, ridge - eave, 0.1, 1.5), kit.timber);
+    king.position.set(cx, (ridge + eave) / 2, z + out);
+    group.add(king);
+    for (const sx of [-1, 1]) {
+      const len = Math.hypot(HALF * 0.55, (ridge - eave) * 0.55);
+      const strut = new THREE.Mesh(box(0.12, len, 0.08, 1.5), kit.timber);
+      strut.position.set(cx + sx * HALF * 0.3, eave + (ridge - eave) * 0.3, z + out);
+      strut.rotation.z = sx * Math.atan2(HALF * 0.55, (ridge - eave) * 0.55);
+      group.add(strut);
+    }
+    const vent = new THREE.Mesh(box(0.5, 0.36, 0.06, 1.5), mats.windowDark);
+    vent.position.set(cx + HALF * 0.45, eave + 0.55, z + out * 1.4);
+    group.add(vent);
   }
 
   // Roof: two slopes running past the walls by an overhang, tiles at real size, and a ridge cap.
@@ -288,7 +307,7 @@ export async function loadProps(): Promise<Record<string, THREE.Object3D>> {
 
 /** A lantern's glow, per instance: a faint paper glow until lit, so unlit ones still read. */
 export const LANTERN_UNLIT = new THREE.Color(0.16, 0.045, 0.012);
-export const LANTERN_LIT = new THREE.Color(2.7, 0.78, 0.13);
+export const LANTERN_LIT = new THREE.Color(1.9, 0.5, 0.07);
 
 /**
  * Red paper lanterns that shade like paper when unlit and glow when lit: the instance colour

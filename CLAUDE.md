@@ -28,6 +28,7 @@ Where the work stands and what is next lives in issue #7's Status section and it
   Check every rig in `check.html` with `&bones`, from the side at several `t`, and up close on the face.
 - Look at every sample at 390 x 844 through `agent-browser` with `?t=` to hold a moment, and for a close look use `&cam=x,y,z,tx,ty,tz` (relative to the hero).
   To find which surface is which, tint a material a flat colour in the live page through `window.__sample.scene`: that is how a roof drawn facing down (culled) showed up as the plaster wall tops beneath it.
+- The owner asked on 2026-11-08 for early evening, not night ("too dark"), and a jump that is not hasty; the sample now has a sunset sky (`src/sample/fx.ts`), a second-long jump with a crouch, a tuck and a landing dip, and a low, level chase camera, because a camera pitched down from high up saw the next roof slide up into the frame at every alley.
 - A portrait chase camera sees only about 34 degrees across, and only what lies ahead: lanterns lit beside or behind the hero are never on screen, so the lit line runs forward from each post like a fuse (2026-11-08).
 - Record clips with `node tools/record.mjs` (the page's `&record` mode steps a fixed clock), into the gitignored `media/`.
 - When the game is built, carry over Lantern River's rules: integers only in `src/sim/`, no clock, no `Math.random`, chunks from the seed and their index, stages as data, `replay(stage, record)` as the server's check, and `?debug` checking that drawing never writes into the rules' state.

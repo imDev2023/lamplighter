@@ -14,12 +14,13 @@ No game code is written until the owner approves the samples, judged against Ken
 2. **The hero's 4-view sheets** (done, one per style), cut into the views image-to-3D reads.
    ![Stylised views: front, left, back, right](samples/views-stylised.jpg)
    ![Painted views: front, left, back, right](samples/views-painted.jpg)
-3. **The hero in 3D** (done, both styles): lifted with Tripo H3.1 from the four views, simplified to about 24,000 triangles with its own textures, rigged with Mixamo bone names and given a run cycle and a jump pose in code; 459 KB and 652 KB compressed.
+3. **The hero in 3D** (done, both styles): lifted with Tripo H3.1 from the four views, simplified to about 24,000 triangles with its own textures, rigged with Mixamo bone names and given a run cycle and an animated jump in code; 459 KB and 652 KB compressed.
    Look at them with `npm run dev`, then `/check.html?src=/models/hero-stylised.glb&src=/models/hero-painted.glb&gap=1.2&clip=run`.
 4. **The hero running over a dressed stretch of rooftops** (done, both styles), in Three.js at 390 x 844: [sample.html](sample.html) with [src/sample](src/sample).
    One 40 m stretch, tiled ahead of the runner: houses, roofs, quays, canal walls and an arched bridge built in code with Poly Haven's CC0 textures, five CC0 props dressed in clusters, the canal mirror and night sky from Lantern River.
    The hero lights each post on the route with the pole, and the light runs forward along its line to the next post; the lines across the canal are the town's own, already lit.
    The painted style adds a watercolour-and-ink screen pass over the same scene.
+   Revised on 2026-11-08 at the owner's request: early evening instead of night (sun just set, warm afterglow, lanterns coming on), a jump of about a second with a crouch, a tuck and a soft landing, and a low, level chase camera so the next roof no longer slides up into the frame over each alley.
    60 fps in headless Chrome on this Mac, about 145 draw calls and 720,000 triangles (the water's mirror draws the scene twice).
    Clips: [stylised](samples/sample4-stylised.mp4) and [painted](samples/sample4-painted.mp4), 12 s each.
    ![Sample 4: three frames stylised, three painted](samples/sample4-frames.jpg)

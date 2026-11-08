@@ -16,7 +16,7 @@ import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js';
 import { OutputPass } from 'three/examples/jsm/postprocessing/OutputPass.js';
 import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
-import { createSky, createFireworks, FIREWORK_LAYER } from './fx.ts';
+import { createSky, createFireworks, FIREWORK_LAYER, SUN_DIR } from './fx.ts';
 import { createWater, POOLS } from './water.ts';
 import { createInkWash } from './inkwash.ts';
 import { buildTile, HOUSES, LANTERN_LIT, LANTERN_UNLIT, loadKit, loadProps, RIDGE, TILE, type Tile } from './town.ts';
@@ -29,28 +29,33 @@ const fixedCam = q.get('cam')?.split(',').map(Number);
 const recording = q.has('record');
 
 const SPEED = 5.2; // metres per second along -Z
-const JUMP_HEIGHT = 1.1;
+// A jump takes off this far before a roof's edge and lands this far past the next one: about
+// a second in the air, long enough to read as a leap rather than a hop.
+const JUMP_LEAD = 1.3;
+const JUMP_HEIGHT = 0.95;
 const LIGHT_POOL = 4;
 
 const canvas = document.getElementById('view') as HTMLCanvasElement;
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
 renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure = 1.1;
+renderer.toneMappingExposure = 1.05;
 renderer.info.autoReset = false;
 
 const scene = new THREE.Scene();
-const HAZE = 0x1a2c4a;
-scene.fog = new THREE.Fog(HAZE, 18, 95);
+// Early evening: a lavender haze that matches the sky's lower band.
+const HAZE = 0x9a90b4;
+scene.fog = new THREE.Fog(HAZE, 28, 140);
 const camera = new THREE.PerspectiveCamera(64, 1, 0.1, 400);
 camera.layers.enable(FIREWORK_LAYER);
 
 // Moonlight: a cool sky fill and a cool key; the warmth comes from lanterns and windows.
-scene.add(new THREE.HemisphereLight(0x5d7cb4, 0x14110d, 0.55));
-const moon = new THREE.DirectionalLight(0xb4c8ff, 0.6);
-moon.position.set(-8, 16, 6);
-scene.add(moon);
-scene.add(moon.target);
+// Evening light: a bright, cool fill from the sky, and the last warm light of the sun, low
+// from ahead on the left, catching roof edges and the hero's side.
+scene.add(new THREE.HemisphereLight(0xb4c2e8, 0x4a3c32, 1.5));
+const sun = new THREE.DirectionalLight(0xffa86e, 1.7);
+scene.add(sun);
+scene.add(sun.target);
 
 const sky = createSky();
 scene.add(sky);
@@ -63,7 +68,7 @@ water.hideLayer(camera, FIREWORK_LAYER);
 
 const composer = new EffectComposer(renderer);
 composer.addPass(new RenderPass(scene, camera));
-const bloom = new UnrealBloomPass(new THREE.Vector2(256, 256), 0.4, 0.16, 0.95);
+const bloom = new UnrealBloomPass(new THREE.Vector2(256, 256), 0.3, 0.16, 1.0);
 composer.addPass(bloom);
 // The painted sample adds a watercolour-and-ink pass over the stylised render.
 const inkWash = style === 'painted' ? createInkWash() : null;
@@ -111,6 +116,8 @@ const run = mixer.clipAction(THREE.AnimationClip.findByName(gltf.animations, 'ru
 const jump = mixer.clipAction(THREE.AnimationClip.findByName(gltf.animations, 'jump')!);
 run.timeScale = 1.25;
 run.play();
+// The page sets the jump's time from how far through the flight the hero is.
+jump.timeScale = 0;
 jump.play();
 jump.weight = 0;
 const hand = hero.getObjectByName('mixamorigRightHand')!;
@@ -131,10 +138,14 @@ scene.add(pole);
 const wickLight = new THREE.PointLight(0xffb067, 2.2, 5, 1.6);
 scene.add(wickLight);
 // A warm key on the hero from the camera's side, as if from the lanterns already lit behind.
-const heroKey = new THREE.PointLight(0xffb27a, 7, 8, 1.4);
+const heroKey = new THREE.PointLight(0xffb27a, 3, 8, 1.4);
 scene.add(heroKey);
 
-/** Where along -Z the hero's row has its next gap, from a distance travelled. */
+/**
+ * The alley the hero is jumping or about to jump, as [edge, far edge] along the route, from a
+ * distance travelled. An alley stays current until the landing and its dip are over: switching
+ * to the next one as soon as the hero passed the edge cut every jump off in mid-air.
+ */
 function gapAhead(d: number): [number, number] | null {
   const base = Math.floor(d / TILE) * TILE;
   for (let k = 0; k < 2; k++) {
@@ -142,7 +153,7 @@ function gapAhead(d: number): [number, number] | null {
     for (let i = 0; i < HOUSES.length; i++) {
       const end = t0 + HOUSES[i]![1];
       const next = i + 1 < HOUSES.length ? t0 + HOUSES[i + 1]![0] : t0 + TILE + HOUSES[0]![0];
-      if (end > d - 0.6) return [end, next];
+      if (next + JUMP_LEAD + 1.2 > d) return [end, next];
     }
   }
   return null;
@@ -166,21 +177,30 @@ function step(dt: number): void {
   const behind = Math.floor((d - 10) / TILE);
   for (const p of tiles) if (p.index < behind) place(p, Math.max(...tiles.map((t) => t.index)) + 1);
 
-  // Jumps: over every alley between houses, a parabola from just before the edge to just past it.
-  let y = RIDGE + 0.12;
+  // Jumps over every alley between houses: a crouch in the last strides before the edge, about
+  // a second in the air on a parabola, the jump clip played across the flight from push-off
+  // through a tuck to the reach for the landing, and a dip on landing that the legs absorb.
+  const base = RIDGE + 0.12;
+  let y = base;
   let air = 0;
+  let u = -1;
   const gap = gapAhead(d);
   if (gap) {
     const [from, to] = gap;
-    const a = from - 0.5;
-    const b = to + 0.5;
+    const a = from - JUMP_LEAD;
+    const b = to + JUMP_LEAD;
+    const bump = (x: number) => (x > 0 && x < 1 ? Math.sin(x * Math.PI) : 0);
+    y -= 0.09 * bump((d - (a - 1.0)) / 1.0);
+    y -= 0.13 * bump((d - b) / 1.2);
     if (d >= a && d <= b) {
-      const u = (d - a) / (b - a);
+      u = (d - a) / (b - a);
       y += JUMP_HEIGHT * 4 * u * (1 - u);
-      air = Math.min(1, Math.min(u, 1 - u) * 8);
+      const ease = (x: number) => x * x * (3 - 2 * x);
+      air = ease(Math.min(1, u / 0.14)) * ease(Math.min(1, (1 - u) / 0.14));
     }
   }
   hero.position.set(0, y, -d);
+  if (u >= 0) jump.time = u * jump.getClip().duration;
   jump.weight = air;
   run.weight = 1 - air;
   mixer.update(dt);
@@ -239,9 +259,13 @@ function step(dt: number): void {
     } else l.intensity = 0;
   });
 
-  // Chase camera: behind, above and to the right, looking forward along the canal.
-  camPos.set(0.9, RIDGE + 1.9, -d + 4.6);
-  camLook.set(-2.0, RIDGE - 0.4, -d - 14);
+  // Chase camera.
+  // Behind the hero, low and pitched almost level, at a fixed height. Pitched down from high
+  // up, the camera looked straight into each alley as it passed and saw the next roof slide up
+  // into the frame; low and level, the roof below the lens stays out of the picture, and a
+  // jump shows the hero against the sky with the alley open beneath.
+  camPos.set(0.6, RIDGE + 1.5, -d + 5.0);
+  camLook.set(-1.2, RIDGE + 0.6, -d - 16);
   if (fixedCam?.length === 6) {
     camPos.set(fixedCam[0]!, RIDGE + fixedCam[1]!, -d + fixedCam[2]!);
     camLook.set(fixedCam[3]!, RIDGE + fixedCam[4]!, -d + fixedCam[5]!);
@@ -253,9 +277,8 @@ function step(dt: number): void {
   firstFrame = false;
 
   sky.position.copy(camera.position);
-  // The moon hangs ahead, so faces turned to the camera fall into soft backlight.
-  moon.position.set(-10, 14, -d - 24);
-  moon.target.position.set(0, 0, -d);
+  sun.position.copy(SUN_DIR).multiplyScalar(40).add(tmp.set(0, 6, -d));
+  sun.target.position.set(0, 0, -d);
   const pools: Array<[number, number, number, number]> = lit.slice(0, POOLS).map(([w, k]) => [w.x - 0.2, w.z, 0.5 * k, 0]);
   water.update(camera, time, pools);
   // The fireworks start at the end of the run; until then, only a rare early rocket.

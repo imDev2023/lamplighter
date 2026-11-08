@@ -1,4 +1,4 @@
-"""Rig a baked, A-posed humanoid and give it a run cycle and a jump pose, all in code.
+"""Rig a baked, A-posed humanoid and give it a run cycle and a jump, all in code.
 
     blender -b --factory-startup --python-exit-code 1 -P tools/rig_hero.py -- \
         in.glb out.glb [--height 1.6] [--facing +x] [--report report.json]
@@ -13,7 +13,8 @@
    clips can be retargeted later, and skin the mesh with automatic weights; any vertex the
    heat solve leaves without a bone goes to the nearest bone.
 4. Key two clips by aiming bones at target directions: "run", one 20-frame loop at 30 fps
-   (two strides in 0.67 s), and "jump", a one-frame tuck pose.
+   (two strides in 0.67 s), and "jump", 24 frames from the push off through a tuck to the
+   reach for the landing, which the page plays across the hero's time in the air.
 5. Export the GLB with its skin and both clips, and print counts and joint positions as JSON.
 
 Blender 4.3 or newer. Never touches the input file.
@@ -360,30 +361,60 @@ def pose_run(p):
         aim(f"{name}Hand", (fore + Vector((0, 0, -0.5))).normalized())
 
 
-def pose_jump():
+# The jump, as three key poses blended smoothly: the push off the roof's edge, a tuck at
+# the top, and the reach for the next roof. Each value is (take-off, apex, landing).
+JUMP_KEYS = {
+    "lean": (16, 10, 4),            # spine tilt forward, degrees
+    "lead_thigh": (55, 80, 38),     # left leg leads
+    "lead_knee": (75, 115, 35),
+    "trail_thigh": (-28, 30, 18),   # right leg pushes, then folds under
+    "trail_knee": (15, 105, 45),
+    "lead_foot": (70, 55, 85),
+    "trail_foot": (5, 40, 75),
+    "pole_arm": (60, 75, 50),       # right arm keeps the pole raised forward
+    "free_arm": (-35, 20, 10),      # left arm swings back on the push, then out for balance
+    "free_out": (0.3, 0.6, 0.9),
+    "hips": (-0.01, 0.03, -0.02),   # hip height, in heights
+}
+
+
+def jump_value(key, p):
+    a, b, c = JUMP_KEYS[key]
+    if p < 0.45:
+        t = p / 0.45
+        lo, hi = a, b
+    else:
+        t = (p - 0.45) / 0.55
+        lo, hi = b, c
+    t = t * t * (3 - 2 * t)
+    return lo + (hi - lo) * t
+
+
+def pose_jump(p):
     clear()
-    pb[P + "Hips"].location = hips_rest.inverted() @ Vector((0, 0, 0.02 * H))
-    aim("Spine", up(8))
-    aim("Spine1", up(14))
-    aim("Spine2", up(16))
-    aim("Neck", up(6))
+    j = lambda k: jump_value(k, p)  # noqa: E731
+    pb[P + "Hips"].location = hips_rest.inverted() @ Vector((0, 0, j("hips") * H))
+    lean = j("lean")
+    aim("Spine", up(lean * 0.6))
+    aim("Spine1", up(lean))
+    aim("Spine2", up(lean))
+    aim("Neck", up(lean * 0.3))
     aim("Head", up(0))
-    # Leading leg tucked high, trailing leg stretched back.
-    aim("LeftUpLeg", sag(70, 0.05))
-    aim("LeftLeg", sag(-30, 0.03))
-    aim("LeftFoot", sag(70))
+    aim("LeftUpLeg", sag(j("lead_thigh"), 0.05))
+    aim("LeftLeg", sag(j("lead_thigh") - j("lead_knee"), 0.03))
+    aim("LeftFoot", sag(j("lead_foot")))
     aim("LeftToeBase", sag(90))
-    aim("RightUpLeg", sag(-30, -0.05))
-    aim("RightLeg", sag(-75, -0.03))
-    aim("RightFoot", sag(10))
-    aim("RightToeBase", sag(30))
-    for side, name, swing in ((1, "Left", -40), (-1, "Right", 75)):
-        upper = sag(swing, side * 0.4)
+    aim("RightUpLeg", sag(j("trail_thigh"), -0.05))
+    aim("RightLeg", sag(j("trail_thigh") - j("trail_knee"), -0.03))
+    aim("RightFoot", sag(j("trail_foot")))
+    aim("RightToeBase", sag(90))
+    for side, name, swing, out in ((1, "Left", j("free_arm"), j("free_out")), (-1, "Right", j("pole_arm"), 0.25)):
+        upper = sag(swing, side * out)
         aim(f"{name}Shoulder", Vector((side, 0, 0)))
         aim(f"{name}Arm", upper)
-        fore = bent(upper, 50)
+        fore = bent(upper, 35)
         aim(f"{name}ForeArm", fore)
-        aim(f"{name}Hand", fore)
+        aim(f"{name}Hand", (fore + Vector((0, 0, -0.4))).normalized())
 
 
 scene = bpy.context.scene
@@ -398,11 +429,14 @@ for f in range(FRAMES + 1):
     key_all(f + 1)
 run.use_fake_user = True
 
+# The jump plays once across the hero's time in the air; the page sets its time from how
+# far through the jump the hero is, so its length here only sets how finely it is sampled.
+JUMP_FRAMES = 24
 jump = bpy.data.actions.new("jump")
 rig.animation_data.action = jump
-pose_jump()
-key_all(1)
-key_all(2)
+for f in range(JUMP_FRAMES + 1):
+    pose_jump(f / JUMP_FRAMES)
+    key_all(f + 1)
 jump.use_fake_user = True
 
 # glTF exports each action as a clip when it sits in an NLA track. Pin each action's
@@ -410,7 +444,7 @@ jump.use_fake_user = True
 # (glTF's exporter samples one frame past the end, so the end is the last frame before the
 # loop closes: 20 frames give a 0.667 s clip whose last key equals its first.)
 run.use_frame_range, run.frame_start, run.frame_end = True, 1, FRAMES
-jump.use_frame_range, jump.frame_start, jump.frame_end = True, 1, 1
+jump.use_frame_range, jump.frame_start, jump.frame_end = True, 1, JUMP_FRAMES
 rig.animation_data.action = None
 for act in (run, jump):
     track = rig.animation_data.nla_tracks.new()
