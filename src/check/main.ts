@@ -110,7 +110,8 @@ if (cam?.length === 6) {
 controls.target.copy(target);
 controls.update();
 
-const clock = new THREE.Clock();
+const timer = new THREE.Timer();
+timer.connect(document);
 function frame(): void {
   const w = canvas.clientWidth;
   const h = canvas.clientHeight;
@@ -119,7 +120,8 @@ function frame(): void {
     camera.aspect = w / h;
     camera.updateProjectionMatrix();
   }
-  const dt = clock.getDelta();
+  timer.update();
+  const dt = timer.getDelta();
   if (freeze === null) for (const m of mixers) m.update(dt);
   renderer.render(scene, camera);
   requestAnimationFrame(frame);

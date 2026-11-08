@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="theme-color" content="#0b1730">
+<link rel="icon" href="/icon.svg" type="image/svg+xml">
+<title>Lamplighter sample</title>
+<style>
+  html, body { margin: 0; height: 100%; background: #0b1730; overflow: hidden; }
+  canvas { display: block; width: 100%; height: 100%; touch-action: none; }
+  #info { position: fixed; left: 8px; top: 8px; color: #dfe6f2; font: 12px/1.4 ui-monospace, monospace; pointer-events: none; }
+</style>
+</head>
+<body>
+<canvas id="view" aria-label="Lamplighter sample"></canvas>
+<div id="info"></div>
+<script type="module" src="/src/sample/main.ts"></script>
+</body>
+</html>

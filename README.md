@@ -16,7 +16,15 @@ No game code is written until the owner approves the samples, judged against Ken
    ![Painted views: front, left, back, right](samples/views-painted.jpg)
 3. **The hero in 3D** (done, both styles): lifted with Tripo H3.1 from the four views, simplified to about 24,000 triangles with its own textures, rigged with Mixamo bone names and given a run cycle and a jump pose in code; 459 KB and 652 KB compressed.
    Look at them with `npm run dev`, then `/check.html?src=/models/hero-stylised.glb&src=/models/hero-painted.glb&gap=1.2&clip=run`.
-4. The hero running on one textured, dressed stretch of rooftop in Three.js at 390 x 844.
+4. **The hero running over a dressed stretch of rooftops** (done, both styles), in Three.js at 390 x 844: [sample.html](sample.html) with [src/sample](src/sample).
+   One 40 m stretch, tiled ahead of the runner: houses, roofs, quays, canal walls and an arched bridge built in code with Poly Haven's CC0 textures, five CC0 props dressed in clusters, the canal mirror and night sky from Lantern River.
+   The hero lights each post on the route with the pole, and the light runs forward along its line to the next post; the lines across the canal are the town's own, already lit.
+   The painted style adds a watercolour-and-ink screen pass over the same scene.
+   60 fps in headless Chrome on this Mac, about 145 draw calls and 720,000 triangles (the water's mirror draws the scene twice).
+   Clips: [stylised](samples/sample4-stylised.mp4) and [painted](samples/sample4-painted.mp4), 12 s each.
+   ![Sample 4: three frames stylised, three painted](samples/sample4-frames.jpg)
+
+Run the samples with `npm install` and `npm run dev`, then open `/sample.html` (add `?style=painted`, `&debug` for the frame rate, `&t=6` to hold a moment).
 
 ## Tools
 
@@ -27,6 +35,8 @@ No game code is written until the owner approves the samples, judged against Ken
 - `tools/simplify.sh in.glb out.glb`: cut a single-atlas generated model (a Tripo output) to a phone budget, keeping its own UVs and textures.
 - `tools/rig_hero.py`: rig an A-posed humanoid in headless Blender with Mixamo bone names and key a run cycle and a jump pose (usage in its docstring).
 - `node tools/polyhaven.ts <asset> [1k|2k]`: download a CC0 Poly Haven texture set into `public/textures`.
+- `node tools/polyhaven-model.ts <asset> [1k|2k]`: download a CC0 Poly Haven model as one compressed GLB in `public/models/props`.
+- `node tools/record.mjs <url> <out.mp4> [seconds] [fps]`: record the sample page to an MP4 on a fixed clock, frame by frame.
 - `check.html`: a Three.js page that loads GLBs side by side, plays a clip and frames a set view (parameters in `src/check/main.ts`).
 - `tools/lowpoly_bake.py`: cut a model with several materials or overlapping UVs to a phone budget by baking in headless Blender (usage in its docstring); its cage suits props, not faces.
 

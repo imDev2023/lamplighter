@@ -26,6 +26,10 @@ Where the work stands and what is next lives in issue #7's Status section and it
   Use the bake tool only for models with several materials or overlapping UVs, then `gltf-transform optimize --simplify false` for both.
 - Rig with `tools/rig_hero.py`: bone heat weighted nothing on the generated mesh's layered cloth, so it solves on a watertight voxel copy and transfers the weights.
   Check every rig in `check.html` with `&bones`, from the side at several `t`, and up close on the face.
+- Look at every sample at 390 x 844 through `agent-browser` with `?t=` to hold a moment, and for a close look use `&cam=x,y,z,tx,ty,tz` (relative to the hero).
+  To find which surface is which, tint a material a flat colour in the live page through `window.__sample.scene`: that is how a roof drawn facing down (culled) showed up as the plaster wall tops beneath it.
+- A portrait chase camera sees only about 34 degrees across, and only what lies ahead: lanterns lit beside or behind the hero are never on screen, so the lit line runs forward from each post like a fuse (2026-11-08).
+- Record clips with `node tools/record.mjs` (the page's `&record` mode steps a fixed clock), into the gitignored `media/`.
 - When the game is built, carry over Lantern River's rules: integers only in `src/sim/`, no clock, no `Math.random`, chunks from the seed and their index, stages as data, `replay(stage, record)` as the server's check, and `?debug` checking that drawing never writes into the rules' state.
 - Nothing touches a chain until the game is built.
 - Licence (owner, 2026-11-07, same as Dockstack and Lantern River): code MIT No Attribution, our assets CC0.
