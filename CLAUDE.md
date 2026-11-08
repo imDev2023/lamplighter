@@ -20,6 +20,8 @@ Where the work stands and what is next lives in issue #7's Status section and it
 - Reference images go to fal through `node tools/fal-upload.ts`, which makes them public URLs: upload only our own files.
 - The hero's sheet leaves out the pole, a flame or anything held: the generator welds held things into the hand, and the game draws the pole as its own model.
   Keep the hair tied back and the clothes fitted, since generators handle loose hair and cloth badly.
+- Check which way each profile on a sheet faces before cutting it with `tools/cut_views.py`: a left view faces the image's left edge.
+  Both of the first sheets drew the left profile twice although the prompt spelled out both sides, so the right view is the left one mirrored.
 - Cut every generated or scanned model to its phone budget with `tools/lowpoly_bake.py` (headless Blender; usage in its docstring), then `gltf-transform optimize`.
 - When the game is built, carry over Lantern River's rules: integers only in `src/sim/`, no clock, no `Math.random`, chunks from the seed and their index, stages as data, `replay(stage, record)` as the server's check, and `?debug` checking that drawing never writes into the rules' state.
 - Nothing touches a chain until the game is built.

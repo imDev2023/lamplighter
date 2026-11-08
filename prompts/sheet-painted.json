@@ -1,0 +1,11 @@
+{
+ "num_images": 1,
+ "aspect_ratio": "16:9",
+ "resolution": "2K",
+ "output_format": "png",
+ "image_urls": [
+  "https://v3b.fal.media/files/b/0ab19b1b/ax4McIYTTqeTO9POdhhUF_mood-painted-2.png"
+ ],
+ "prompt": "Make a character turnaround sheet for building a 3D model of the hero in the reference image: the same young lamplighter with the same face, hair, clothes and colours. Four full-body views of this one character standing side by side in a row, left to right: (1) front view, facing the viewer; (2) left side view, a strict profile showing the character's left side, the character facing the left edge of the image; (3) back view, facing away from the viewer; (4) right side view, a strict profile showing the character's right side, the character facing the right edge of the image. Neutral A-pose in every view: standing straight, feet a little apart, arms held about 30 degrees away from the body, hands open, relaxed and empty. Same height and scale in every view, head to toe fully visible, generous empty space between the views, nothing overlapping or cut off. Straight-on, orthographic-looking camera at mid-body height, even flat studio lighting with no cast shadows, plain flat light grey background. Hair pulled back into a tight bun with no loose strands; fitted clothes with no loose flaps: the sash is tied flat with its short ends tucked in, trousers wrapped at the shins, soft cloth shoes. Nothing held or carried: no pole, no lantern, no flame, no bag, no props. No text, no labels, no numbers, no arrows, no ground line. Paint it in the same hand-made watercolour and ink style as the reference: confident ink outlines, flat transparent watercolour washes, light paper grain, but keep the light grey background flat and even.",
+ "seed": 7102
+}
