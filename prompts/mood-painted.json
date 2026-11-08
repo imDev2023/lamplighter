@@ -1,0 +1,11 @@
+{
+ "image_urls": [
+  "https://v3b.fal.media/files/b/0ab19af2/qBGOcT6FFLSlHr_Ag2sTt_concept-frame.jpg"
+ ],
+ "num_images": 2,
+ "aspect_ratio": "9:16",
+ "resolution": "2K",
+ "output_format": "png",
+ "prompt": "Use the reference image only for the town's architecture (canal, stone bridge, tiled roofs, lime-washed walls, paper lanterns), not its rendering or composition. Make a new image painted in a hand-made watercolour and ink style: confident ink linework of varying weight, loose transparent watercolour washes with soft blooms and visible paper grain, a limited palette of deep indigo, ink black, wet stone grey and warm lantern orange, the lit lanterns glowing as saturated orange washes against the night. It must still read as a frame from a 3D game: consistent perspective, clear depth and readable silhouettes. A frame from a portrait mobile 3D runner game, 9:16, seen from its gameplay camera: a steady chase camera behind, slightly to one side of and a little above the hero, looking forward along the route. Festival night in an old canal town. The hero, a young lamplighter, is mid-leap across a narrow canal, jumping from the edge of one tiled rooftop to the next, body stretched in a dynamic running jump, one arm reaching forward with a long, thin wooden lighting pole tipped with a small brass hook and a tiny flame. The lamplighter is a slim young person with dark hair tied back in a short bun, a fitted short indigo jacket closed with a sash, dark trousers wrapped at the shins and soft cloth shoes; hands bare, no hat, no cape, no loose cloth. Strings of round paper lanterns cross the canal: the ones the hero has already passed, nearest the camera, glow warm orange, and the lantern just touched by the pole flares into light, while the lanterns further ahead are still dark and unlit. Below, the canal's dark glassy water reflects the lit lanterns; stone quays, an arched stone bridge ahead, lime-washed walls with dark timber, lit windows, a deep indigo sky with stars and the first single firework rising in the distance. The hero reads clearly as a silhouette against the sky, about one fifth of the frame's height, in the middle third of the frame. No text, no UI, no logos, no other people.",
+ "seed": 7002
+}
