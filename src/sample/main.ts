@@ -19,7 +19,7 @@ import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
 import { createSky, createFireworks, FIREWORK_LAYER, SUN_DIR } from './fx.ts';
 import { createWater, POOLS } from './water.ts';
 import { createInkWash } from './inkwash.ts';
-import { buildTile, HOUSES, LANTERN_LIT, LANTERN_UNLIT, loadKit, loadProps, RIDGE, TILE, type Tile } from './town.ts';
+import { buildTile, DECK, HOUSES, LANTERN_LIT, LANTERN_UNLIT, loadKit, loadProps, TILE, type Tile } from './town.ts';
 
 const q = new URLSearchParams(location.search);
 const style = q.get('style') === 'painted' ? 'painted' : 'stylised';
@@ -39,7 +39,8 @@ const canvas = document.getElementById('view') as HTMLCanvasElement;
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
 renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure = 1.05;
+// A touch lower than the first evening rework, which the owner found a little too light.
+renderer.toneMappingExposure = 0.94;
 renderer.info.autoReset = false;
 
 const scene = new THREE.Scene();
@@ -49,13 +50,17 @@ scene.fog = new THREE.Fog(HAZE, 28, 140);
 const camera = new THREE.PerspectiveCamera(64, 1, 0.1, 400);
 camera.layers.enable(FIREWORK_LAYER);
 
-// Moonlight: a cool sky fill and a cool key; the warmth comes from lanterns and windows.
-// Evening light: a bright, cool fill from the sky, and the last warm light of the sun, low
-// from ahead on the left, catching roof edges and the hero's side.
-scene.add(new THREE.HemisphereLight(0xb4c2e8, 0x4a3c32, 1.5));
-const sun = new THREE.DirectionalLight(0xffa86e, 1.7);
+// Evening light: a cool fill from the sky, and the last warm light of the sun, low from ahead
+// on the left, catching roof edges and the hero's side.
+scene.add(new THREE.HemisphereLight(0xb4c2e8, 0x4a3c32, 1.25));
+const sun = new THREE.DirectionalLight(0xffa86e, 1.6);
 scene.add(sun);
 scene.add(sun.target);
+// The sky opposite the sunset, still bright, fills the slopes facing away from the sun: the
+// right-hand slope under the hero read almost black without it (owner, 2026-11-09).
+const skyFill = new THREE.DirectionalLight(0xb0b8e0, 1.7);
+scene.add(skyFill);
+scene.add(skyFill.target);
 
 const sky = createSky();
 scene.add(sky);
@@ -131,14 +136,71 @@ pole.add(shaft);
 const hook = new THREE.Mesh(new THREE.TorusGeometry(0.07, 0.012, 6, 14, Math.PI * 1.3), brass);
 hook.position.set(0.05, 2.33, 0);
 pole.add(hook);
-const wick = new THREE.Mesh(new THREE.ConeGeometry(0.03, 0.11, 8), new THREE.MeshBasicMaterial({ color: new THREE.Color(5, 2.4, 0.7) }));
-wick.position.set(0, 2.36, 0);
-pole.add(wick);
+// Where the lamp hangs: just past the hook's tip.
+const hangPoint = new THREE.Object3D();
+hangPoint.position.set(0.12, 2.3, 0);
+pole.add(hangPoint);
 scene.add(pole);
-const wickLight = new THREE.PointLight(0xffb067, 2.2, 5, 1.6);
-scene.add(wickLight);
-// A warm key on the hero from the camera's side, as if from the lanterns already lit behind.
-const heroKey = new THREE.PointLight(0xffb27a, 3, 8, 1.4);
+
+/**
+ * The lamp on the pole: a small brass lantern hanging from the hook, with a glowing glass
+ * body, a flame inside and a soft halo. The first sample had only a bright cone at the tip,
+ * which the owner read as a spark rather than a lamp (2026-11-09). It hangs plumb from the
+ * hook whatever the pole's angle, and swings a little with the stride.
+ */
+function makeLamp(): THREE.Group {
+  const g = new THREE.Group();
+  const chain = new THREE.Mesh(new THREE.CylinderGeometry(0.005, 0.005, 0.07, 4), brass);
+  chain.position.y = -0.035;
+  g.add(chain);
+  const cap = new THREE.Mesh(new THREE.ConeGeometry(0.085, 0.07, 6), brass);
+  cap.position.y = -0.1;
+  g.add(cap);
+  const ring = new THREE.Mesh(new THREE.TorusGeometry(0.02, 0.006, 4, 10), brass);
+  ring.position.y = -0.06;
+  g.add(ring);
+  // The glass: warm and over-bright, so the bloom pass gives it a glow.
+  const glass = new THREE.Mesh(new THREE.CylinderGeometry(0.068, 0.058, 0.15, 6, 1, true), new THREE.MeshBasicMaterial({ color: new THREE.Color(2.4, 1.25, 0.45), side: THREE.DoubleSide }));
+  glass.position.y = -0.21;
+  g.add(glass);
+  // Brass uprights at the glass's corners.
+  for (let i = 0; i < 6; i++) {
+    const a = (i / 6) * Math.PI * 2;
+    const bar = new THREE.Mesh(new THREE.BoxGeometry(0.012, 0.16, 0.012), brass);
+    bar.position.set(Math.cos(a) * 0.066, -0.21, Math.sin(a) * 0.066);
+    g.add(bar);
+  }
+  const base = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.05, 0.035, 6), brass);
+  base.position.y = -0.3;
+  g.add(base);
+  const flame = new THREE.Mesh(new THREE.ConeGeometry(0.022, 0.085, 8), new THREE.MeshBasicMaterial({ color: new THREE.Color(8, 4.2, 1.2) }));
+  flame.position.y = -0.2;
+  flame.name = 'flame';
+  g.add(flame);
+  // A soft halo, drawn additively and always facing the camera.
+  const c = document.createElement('canvas');
+  c.width = c.height = 64;
+  const x = c.getContext('2d')!;
+  const r = x.createRadialGradient(32, 32, 0, 32, 32, 32);
+  r.addColorStop(0, 'rgba(255,255,255,0.9)');
+  r.addColorStop(0.3, 'rgba(255,255,255,0.3)');
+  r.addColorStop(1, 'rgba(255,255,255,0)');
+  x.fillStyle = r;
+  x.fillRect(0, 0, 64, 64);
+  const halo = new THREE.Sprite(new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(c), color: 0xffa050, blending: THREE.AdditiveBlending, depthWrite: false, fog: false }));
+  halo.scale.setScalar(0.85);
+  halo.position.y = -0.21;
+  g.add(halo);
+  return g;
+}
+const lamp = makeLamp();
+scene.add(lamp);
+const flame = lamp.getObjectByName('flame')!;
+const lampLight = new THREE.PointLight(0xffa860, 3.2, 6, 1.6);
+scene.add(lampLight);
+// A warm key on the hero from behind, as if from the lanterns already lit: kept short, so it
+// does not light up the alley walls as the camera passes over them.
+const heroKey = new THREE.PointLight(0xffb27a, 2.2, 3.4, 1.4);
 scene.add(heroKey);
 
 /**
@@ -180,7 +242,7 @@ function step(dt: number): void {
   // Jumps over every alley between houses: a crouch in the last strides before the edge, about
   // a second in the air on a parabola, the jump clip played across the flight from push-off
   // through a tuck to the reach for the landing, and a dip on landing that the legs absorb.
-  const base = RIDGE + 0.12;
+  const base = DECK;
   let y = base;
   let air = 0;
   let u = -1;
@@ -230,8 +292,14 @@ function step(dt: number): void {
   // Raised forward, up towards the lanterns hanging over the route.
   pole.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), tmp.set(-0.22, 0.8, -0.56).normalize());
   pole.updateMatrixWorld(true);
-  wick.getWorldPosition(wickLight.position);
-  heroKey.position.set(1.4, y + 1.8, -d + 2.2);
+  hangPoint.getWorldPosition(lamp.position);
+  // A pendulum's lag: it swings back as the hero pushes off and with each stride.
+  lamp.rotation.x = 0.1 * Math.sin(time * 2 * Math.PI * 1.15) + (u >= 0 ? 0.25 * Math.sin(u * Math.PI) : 0);
+  lamp.rotation.z = 0.06 * Math.sin(time * 2 * Math.PI * 0.575);
+  flame.scale.y = 1 + 0.12 * Math.sin(time * 23) * Math.sin(time * 7.3);
+  lamp.updateMatrixWorld(true);
+  flame.getWorldPosition(lampLight.position);
+  heroKey.position.set(0.9, y + 1.6, -d + 1.5);
 
   // Warm light pool: the nearest lit lanterns ahead of the camera.
   const lit: Array<[THREE.Vector3, number]> = [];
@@ -264,11 +332,11 @@ function step(dt: number): void {
   // up, the camera looked straight into each alley as it passed and saw the next roof slide up
   // into the frame; low and level, the roof below the lens stays out of the picture, and a
   // jump shows the hero against the sky with the alley open beneath.
-  camPos.set(0.6, RIDGE + 1.5, -d + 5.0);
-  camLook.set(-1.2, RIDGE + 0.6, -d - 16);
+  camPos.set(0.6, DECK + 1.38, -d + 5.0);
+  camLook.set(-1.2, DECK + 0.48, -d - 16);
   if (fixedCam?.length === 6) {
-    camPos.set(fixedCam[0]!, RIDGE + fixedCam[1]!, -d + fixedCam[2]!);
-    camLook.set(fixedCam[3]!, RIDGE + fixedCam[4]!, -d + fixedCam[5]!);
+    camPos.set(fixedCam[0]!, DECK + fixedCam[1]!, -d + fixedCam[2]!);
+    camLook.set(fixedCam[3]!, DECK + fixedCam[4]!, -d + fixedCam[5]!);
     firstFrame = true;
   }
   if (firstFrame) camera.position.copy(camPos);
@@ -279,6 +347,8 @@ function step(dt: number): void {
   sky.position.copy(camera.position);
   sun.position.copy(SUN_DIR).multiplyScalar(40).add(tmp.set(0, 6, -d));
   sun.target.position.set(0, 0, -d);
+  skyFill.position.set(40, 32, -d + 16);
+  skyFill.target.position.set(0, 0, -d);
   const pools: Array<[number, number, number, number]> = lit.slice(0, POOLS).map(([w, k]) => [w.x - 0.2, w.z, 0.5 * k, 0]);
   water.update(camera, time, pools);
   // The fireworks start at the end of the run; until then, only a rare early rocket.

@@ -11,7 +11,8 @@ export const SUN_DIR = new THREE.Vector3(-0.42, 0.05, -0.9).normalize();
  * An early-evening sky dome that follows the camera: the afterglow of a sun just set ahead
  * on the left, warm at that horizon and dusty pink around it, lavender blue overhead, and the
  * first faint stars high up. (Lamplighter's sample: the owner asked for evening coming on,
- * not night, on 2026-11-08.)
+ * not night, on 2026-11-08, then a little darker
+ * than the first evening, on 2026-11-09.)
  */
 export function createSky(): THREE.Mesh {
   const mat = new THREE.ShaderMaterial({
@@ -19,9 +20,9 @@ export function createSky(): THREE.Mesh {
     depthWrite: false,
     fog: false,
     uniforms: {
-      zenith: { value: new THREE.Color(0x1f3c80) },
-      mid: { value: new THREE.Color(0x6276b8) },
-      horizon: { value: new THREE.Color(0xd8a0a8) },
+      zenith: { value: new THREE.Color(0x19326e) },
+      mid: { value: new THREE.Color(0x5264a2) },
+      horizon: { value: new THREE.Color(0xc89098) },
       glow: { value: new THREE.Color(0xffb070) },
       sunDir: { value: SUN_DIR },
     },

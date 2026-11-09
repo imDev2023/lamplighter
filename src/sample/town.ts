@@ -21,6 +21,15 @@ export const RIDGE = 8;
 const EAVE = 5.8;
 const HALF = 3;
 
+// The lamplighter's catwalk along each ridge of the hero's row: two stringers resting on the
+// ridge tiles, crosswise planks on top like a railway's sleepers, and a low edge board each
+// side. It gives the run a flat, readable track that still belongs on a roof (owner, 2026-11-09).
+const WALK_HALF = 0.55;
+const STRINGER_TOP = RIDGE + 0.27;
+const PLANK = 0.06;
+/** Height of the catwalk's deck, where the hero's feet are. */
+export const DECK = STRINGER_TOP + PLANK;
+
 /** Houses of the hero's row within one tile, as [start, end] along -Z (metres from the tile's start). */
 export const HOUSES: Array<[number, number]> = [
   [0, 11],
@@ -114,22 +123,27 @@ const v3 = (x: number, y: number, z: number) => new THREE.Vector3(x, y, z);
 /**
  * A two-storey house with a gable roof whose ridge runs along Z.
  * `cx` is its centre across, `z0 > z1` its ends along -Z, `ridge` the ridge height.
+ * `onRoute` marks the hero's row: a catwalk on the ridge, and gable ends of dark boarding
+ * without the timber frame and vent. The chase camera passes just over each alley about a
+ * second after the hero jumps it, and a pale plaster gable stacked with beams rose through the
+ * bottom of the frame like a flight of stairs (owner, 2026-11-09).
  */
-function house(group: THREE.Group, kit: Kit, mats: Mats, cx: number, z0: number, z1: number, eave: number, ridge: number, rand: () => number): void {
+function house(group: THREE.Group, kit: Kit, mats: Mats, cx: number, z0: number, z1: number, eave: number, ridge: number, rand: () => number, onRoute = false): void {
   const len = z0 - z1;
   const zc = (z0 + z1) / 2;
   const walls = new THREE.Mesh(box(HALF * 2, eave - GROUND, len, 2.5), kit.plaster);
   walls.position.set(cx, (eave + GROUND) / 2, zc);
   group.add(walls);
 
-  // Gable ends: a plaster triangle under each end of the roof.
+  // Gable ends: a plaster triangle under each end of the roof (boarding on the route).
   for (const [z, sign] of [[z0, 1], [z1, -1]] as const) {
     const g = new THREE.BufferGeometry();
     g.setAttribute('position', new THREE.Float32BufferAttribute([cx - HALF, eave, z, cx + HALF, eave, z, cx, ridge, z], 3));
     g.setAttribute('uv', new THREE.Float32BufferAttribute([0, 0, (HALF * 2) / 2.5, 0, HALF / 2.5, (ridge - eave) / 2.5], 2));
     if (sign < 0) g.setIndex([0, 2, 1]);
     g.computeVertexNormals();
-    group.add(new THREE.Mesh(g, kit.plaster));
+    group.add(new THREE.Mesh(g, onRoute ? mats.gableBoards : kit.plaster));
+    if (onRoute) continue;
     // Timber on the gable: a tie beam at the eaves, a king post up to the ridge, two struts
     // and a small vent, so a gable seen up close over an alley is not a blank wall.
     const out = sign * 0.05;
@@ -179,6 +193,7 @@ function house(group: THREE.Group, kit: Kit, mats: Mats, cx: number, z0: number,
   cap.rotation.y = Math.PI / 2;
   cap.position.set(cx, ridge, zc);
   group.add(cap);
+  if (onRoute) catwalk(group, kit, mats, cx, z0 + over, z1 - over);
 
   // Timber frame: corner posts, a floor beam and a top plate.
   for (const sx of [-1, 1]) {
@@ -220,6 +235,56 @@ function house(group: THREE.Group, kit: Kit, mats: Mats, cx: number, z0: number,
   }
 }
 
+/** The catwalk along a ridge from `z0` to `z1` (`z0 > z1`), its deck at DECK. */
+function catwalk(group: THREE.Group, kit: Kit, mats: Mats, cx: number, z0: number, z1: number): void {
+  const len = z0 - z1;
+  const zc = (z0 + z1) / 2;
+  // Stringers: two beams along the ridge, resting on the ridge tiles.
+  for (const sx of [-1, 1]) {
+    const s = new THREE.Mesh(box(0.09, STRINGER_TOP - RIDGE, len, 1.5), kit.timber);
+    s.position.set(cx + sx * 0.32, (STRINGER_TOP + RIDGE) / 2, zc);
+    group.add(s);
+  }
+  // Planks across, a hand's width apart, each a little out of line so the deck reads as laid
+  // by hand rather than stamped.
+  const pitch = 0.27;
+  const n = Math.floor(len / pitch);
+  for (let i = 0; i < n; i++) {
+    const z = z0 - (i + 0.5) * (len / n);
+    const p = new THREE.Mesh(box(WALK_HALF * 2 - 0.08, PLANK, 0.22, 1.2), mats.deck);
+    p.position.set(cx + Math.sin(i * 12.9898) * 0.02, STRINGER_TOP + PLANK / 2, z);
+    p.rotation.y = Math.sin(i * 78.233) * 0.012;
+    group.add(p);
+  }
+  // Edge boards each side, standing just proud of the deck: the track's rails.
+  for (const sx of [-1, 1]) {
+    const e = new THREE.Mesh(box(0.07, 0.1, len, 1.5), kit.timber);
+    e.position.set(cx + sx * WALK_HALF, DECK - 0.01, zc);
+    group.add(e);
+  }
+  // A header board across each end hides the stringers' ends, so the camera, passing just over
+  // each alley, sees one clean edge rather than a table on legs.
+  for (const z of [z0 - 0.04, z1 + 0.04]) {
+    const h = new THREE.Mesh(box(WALK_HALF * 2 + 0.07, DECK - RIDGE - 0.02, 0.06, 1.5), kit.timber);
+    h.position.set(cx, (DECK + RIDGE) / 2 - 0.02, z);
+    group.add(h);
+  }
+  // Saddles under the stringers down to the slope every couple of metres, so the walk sits on
+  // the roof rather than floating over it; none near the ends, where the camera looks under.
+  const slope = (RIDGE - EAVE) / HALF;
+  const saddles = Math.max(1, Math.round((len - 2.4) / 2.2));
+  for (let k = 0; k <= saddles; k++) {
+    const z = z0 - 1.2 - (k * (len - 2.4)) / saddles;
+    for (const sx of [-1, 1]) {
+      const top = STRINGER_TOP - 0.02;
+      const bottom = RIDGE - (WALK_HALF - 0.05) * slope;
+      const s = new THREE.Mesh(box(0.1, top - bottom, 0.1, 1.5), kit.timber);
+      s.position.set(cx + sx * (WALK_HALF - 0.05), (top + bottom) / 2, z);
+      group.add(s);
+    }
+  }
+}
+
 /**
  * A soft pool of warm light on a wall, drawn as an additive quad: lit windows and lanterns
  * warm the plaster around them without adding a real light per window, which would recompile
@@ -237,6 +302,8 @@ type Mats = {
   spill: THREE.MeshBasicMaterial;
   spillStrong: THREE.MeshBasicMaterial;
   ridgeCap: THREE.MeshStandardMaterial;
+  deck: THREE.MeshStandardMaterial;
+  gableBoards: THREE.MeshStandardMaterial;
   pane: THREE.PlaneGeometry;
   windowLit: THREE.MeshStandardMaterial;
   windowDark: THREE.MeshStandardMaterial;
@@ -247,6 +314,12 @@ type Mats = {
 function makeMats(kit: Kit): Mats {
   const ridgeCap = kit.roof.clone();
   ridgeCap.color.setHex(0x6e7686);
+  // Weathered deck boards, a shade paler than the frame timber so the track reads at a glance.
+  const deck = kit.timber.clone();
+  deck.color.setHex(0xa08c76);
+  // The route's gable ends: the same boards, darker, so an alley reads as shadow.
+  const gableBoards = kit.timber.clone();
+  gableBoards.color.setHex(0x5a4e44);
   const glowMap = (() => {
     const c = document.createElement('canvas');
     c.width = c.height = 128;
@@ -266,6 +339,8 @@ function makeMats(kit: Kit): Mats {
     spill: spillMat(0.35),
     spillStrong: spillMat(0.6),
     ridgeCap,
+    deck,
+    gableBoards,
     pane: new THREE.PlaneGeometry(1, 1),
     windowLit: new THREE.MeshStandardMaterial({ color: 0x2a1708, emissive: 0xffa04a, emissiveIntensity: 1.6, roughness: 0.6 }),
     windowDark: new THREE.MeshStandardMaterial({ color: 0x141a26, roughness: 0.3, metalness: 0.2 }),
@@ -351,7 +426,7 @@ export function buildTile(kit: Kit, props: Record<string, THREE.Object3D>, seed:
   }
 
   // The hero's row, the right row and the far row.
-  for (const [a, b] of HOUSES) house(group, kit, mats, 0, -a, -b, EAVE, RIDGE, rand);
+  for (const [a, b] of HOUSES) house(group, kit, mats, 0, -a, -b, EAVE, RIDGE, rand, true);
   for (let z = 0; z < TILE - 1; ) {
     const len = 6 + rand() * 5;
     const end = Math.min(TILE, z + len);
