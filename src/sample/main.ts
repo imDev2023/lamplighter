@@ -119,7 +119,11 @@ scene.add(hero);
 const mixer = new THREE.AnimationMixer(hero);
 const run = mixer.clipAction(THREE.AnimationClip.findByName(gltf.animations, 'run')!);
 const jump = mixer.clipAction(THREE.AnimationClip.findByName(gltf.animations, 'jump')!);
-run.timeScale = 1.25;
+// The run is Quaternius's sprint retargeted by tools/rig_hero.py, whose report measures the
+// ground speed it implies at time scale 1 from the planted foot; playing it at the route's
+// speed keeps the feet from skating on the deck.
+const RUN_SPEED_AT_1X = { stylised: 6.29, painted: 6.39 }[style];
+run.timeScale = SPEED / RUN_SPEED_AT_1X;
 run.play();
 // The page sets the jump's time from how far through the flight the hero is.
 jump.timeScale = 0;

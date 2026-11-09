@@ -131,9 +131,20 @@ const v3 = (x: number, y: number, z: number) => new THREE.Vector3(x, y, z);
 function house(group: THREE.Group, kit: Kit, mats: Mats, cx: number, z0: number, z1: number, eave: number, ridge: number, rand: () => number, onRoute = false): void {
   const len = z0 - z1;
   const zc = (z0 + z1) / 2;
-  const walls = new THREE.Mesh(box(HALF * 2, eave - GROUND, len, 2.5), kit.plaster);
+  // Each house off the route gets its own wash of plaster and roof, and some a timber-clad
+  // upper storey, so a row reads as separate houses rather than one long wall (look pass,
+  // 2026-11-09).
+  const plaster = onRoute ? kit.plaster : mats.plasters[Math.floor(rand() * mats.plasters.length)]!;
+  const roofMat = onRoute || rand() < 0.5 ? kit.roof : mats.roofWarm;
+  const clad = !onRoute && rand() < 0.4;
+  const walls = new THREE.Mesh(box(HALF * 2, eave - GROUND, len, 2.5), plaster);
   walls.position.set(cx, (eave + GROUND) / 2, zc);
   group.add(walls);
+  if (clad) {
+    const upper = new THREE.Mesh(box(HALF * 2 + 0.03, eave - 3.6, len + 0.03, 1.5), mats.cladding);
+    upper.position.set(cx, (eave + 3.6) / 2, zc);
+    group.add(upper);
+  }
 
   // Gable ends: a plaster triangle under each end of the roof (boarding on the route).
   for (const [z, sign] of [[z0, 1], [z1, -1]] as const) {
@@ -142,7 +153,7 @@ function house(group: THREE.Group, kit: Kit, mats: Mats, cx: number, z0: number,
     g.setAttribute('uv', new THREE.Float32BufferAttribute([0, 0, (HALF * 2) / 2.5, 0, HALF / 2.5, (ridge - eave) / 2.5], 2));
     if (sign < 0) g.setIndex([0, 2, 1]);
     g.computeVertexNormals();
-    group.add(new THREE.Mesh(g, onRoute ? mats.gableBoards : kit.plaster));
+    group.add(new THREE.Mesh(g, onRoute ? mats.gableBoards : plaster));
     if (onRoute) continue;
     // Timber on the gable: a tie beam at the eaves, a king post up to the ridge, two struts
     // and a small vent, so a gable seen up close over an alley is not a blank wall.
@@ -178,7 +189,7 @@ function house(group: THREE.Group, kit: Kit, mats: Mats, cx: number, z0: number,
     // resolution true-size tiles blur into flat grey, and chunky tiles suit the stylised look.
     // Wound so each slope faces up and out (the left slope's corners run the other way).
     const g = side < 0 ? quad(b, a, d, c, 4.5) : quad(a, b, c, d, 4.5);
-    const roof = new THREE.Mesh(g, kit.roof);
+    const roof = new THREE.Mesh(g, roofMat);
     group.add(roof);
     // A fascia board under the eave.
     const fascia = new THREE.Mesh(box(0.08, 0.22, len + over * 2, 1.5), kit.timber);
@@ -194,6 +205,38 @@ function house(group: THREE.Group, kit: Kit, mats: Mats, cx: number, z0: number,
   cap.position.set(cx, ridge, zc);
   group.add(cap);
   if (onRoute) catwalk(group, kit, mats, cx, z0 + over, z1 - over);
+
+  // A chimney on some roofs: stone, with a flat cap.
+  if (!onRoute && rand() < 0.45) {
+    const off = (rand() < 0.5 ? -1 : 1) * 1.3;
+    const roofY = ridge - (Math.abs(off) * (ridge - eave)) / HALF;
+    const z = zc + (rand() - 0.5) * len * 0.5;
+    const top = ridge + 0.55;
+    const stack = new THREE.Mesh(box(0.42, top - roofY + 0.3, 0.42, 1.2), kit.stone);
+    stack.position.set(cx + off, (top + roofY - 0.3) / 2, z);
+    group.add(stack);
+    const lid = new THREE.Mesh(box(0.6, 0.08, 0.6, 1.2), kit.timber);
+    lid.position.set(cx + off, top + 0.1, z);
+    group.add(lid);
+  }
+
+  // Cloth shop banners on the ground floor of the side the camera sees, hung from rods at
+  // right angles to the wall, as shop signs are, so they read from along the street.
+  if (!onRoute) {
+    const facing = cx < 0 ? 1 : -1;
+    const n = Math.max(2, Math.floor(len / 2.6));
+    for (let i = 1; i < n; i++) {
+      if (rand() > 0.4) continue;
+      const z = z0 - (i * len) / n;
+      const x = cx + facing * (HALF + 0.42);
+      const cloth = new THREE.Mesh(mats.bannerGeo, mats.banners[Math.floor(rand() * mats.banners.length)]!);
+      cloth.position.set(x, 2.95, z);
+      group.add(cloth);
+      const rod = new THREE.Mesh(box(0.85, 0.04, 0.04, 1.2), kit.timber);
+      rod.position.set(cx + facing * (HALF + 0.42), 3.66, z);
+      group.add(rod);
+    }
+  }
 
   // Timber frame: corner posts, a floor beam and a top plate.
   for (const sx of [-1, 1]) {
@@ -230,6 +273,15 @@ function house(group: THREE.Group, kit: Kit, mats: Mats, cx: number, z0: number,
         const sill = new THREE.Mesh(box(0.22, 0.08, 1.1, 1.5), kit.timber);
         sill.position.set(cx + sx * (HALF + 0.09), y - 0.62, z);
         group.add(sill);
+        // Painted shutters folded back beside some windows.
+        if (!onRoute && rand() < 0.35) {
+          const m = mats.shutters[Math.floor(rand() * mats.shutters.length)]!;
+          for (const dz of [-0.72, 0.72]) {
+            const s = new THREE.Mesh(box(0.05, 1.12, 0.4, 1.2), m);
+            s.position.set(cx + sx * (HALF + 0.05), y, z + dz);
+            group.add(s);
+          }
+        }
       }
     }
   }
@@ -290,11 +342,11 @@ function catwalk(group: THREE.Group, kit: Kit, mats: Mats, cx: number, z0: numbe
  * warm the plaster around them without adding a real light per window, which would recompile
  * every material as the town streams (WORKFLOW.md).
  */
-function spill(group: THREE.Group, mats: Mats, x: number, y: number, z: number, facing: number, size: number, strength: number): void {
+function spill(group: THREE.Group, mats: Mats, x: number, y: number, z: number, facing: number, size: number, strength: number, aspect = 0.8): void {
   const m = new THREE.Mesh(mats.pane, strength > 0.6 ? mats.spillStrong : mats.spill);
   m.position.set(x, y, z);
   m.rotation.y = facing * Math.PI / 2;
-  m.scale.set(size, size * 0.8, 1);
+  m.scale.set(size, size * aspect, 1);
   group.add(m);
 }
 
@@ -304,6 +356,12 @@ type Mats = {
   ridgeCap: THREE.MeshStandardMaterial;
   deck: THREE.MeshStandardMaterial;
   gableBoards: THREE.MeshStandardMaterial;
+  plasters: THREE.MeshStandardMaterial[];
+  roofWarm: THREE.MeshStandardMaterial;
+  cladding: THREE.MeshStandardMaterial;
+  shutters: THREE.MeshStandardMaterial[];
+  banners: THREE.MeshStandardMaterial[];
+  bannerGeo: THREE.PlaneGeometry;
   pane: THREE.PlaneGeometry;
   windowLit: THREE.MeshStandardMaterial;
   windowDark: THREE.MeshStandardMaterial;
@@ -320,6 +378,39 @@ function makeMats(kit: Kit): Mats {
   // The route's gable ends: the same boards, darker, so an alley reads as shadow.
   const gableBoards = kit.timber.clone();
   gableBoards.color.setHex(0x5a4e44);
+  const tinted = (m: THREE.MeshStandardMaterial, hex: number) => {
+    const c = m.clone();
+    c.color.setHex(hex);
+    return c;
+  };
+  // Washes of lime plaster: chalk white, warm cream, a faded rose and a cool grey.
+  const plasters = [0xd9d2c4, 0xe2cfae, 0xd6bcb0, 0xc6cbc6].map((h) => tinted(kit.plaster, h));
+  const roofWarm = tinted(kit.roof, 0xa29a90);
+  const cladding = tinted(kit.timber, 0x75604c);
+  const shutters = [0x4f6e5c, 0x6e4a38].map((h) => tinted(kit.timber, h));
+  // A banner's cloth: a border, a pale roundel and two bars, drawn once and tinted per colour.
+  const bannerMap = (() => {
+    const c = document.createElement('canvas');
+    c.width = 64;
+    c.height = 160;
+    const g = c.getContext('2d')!;
+    g.fillStyle = '#8c8c8c';
+    g.fillRect(0, 0, 64, 160);
+    g.fillStyle = '#e6e6e6';
+    g.fillRect(6, 6, 52, 148);
+    g.fillStyle = '#ffffff';
+    g.beginPath();
+    g.arc(32, 46, 17, 0, Math.PI * 2);
+    g.fill();
+    g.fillStyle = '#8c8c8c';
+    g.fillRect(22, 84, 20, 8);
+    g.fillRect(18, 104, 28, 8);
+    g.fillRect(24, 124, 16, 8);
+    const t = new THREE.CanvasTexture(c);
+    t.colorSpace = THREE.SRGBColorSpace;
+    return t;
+  })();
+  const banners = [0xa8352a, 0x34477a, 0xc08a3a].map((h) => new THREE.MeshStandardMaterial({ color: h, map: bannerMap, roughness: 0.9, side: THREE.DoubleSide }));
   const glowMap = (() => {
     const c = document.createElement('canvas');
     c.width = c.height = 128;
@@ -341,6 +432,12 @@ function makeMats(kit: Kit): Mats {
     ridgeCap,
     deck,
     gableBoards,
+    plasters,
+    roofWarm,
+    cladding,
+    shutters,
+    banners,
+    bannerGeo: new THREE.PlaneGeometry(0.62, 1.4),
     pane: new THREE.PlaneGeometry(1, 1),
     windowLit: new THREE.MeshStandardMaterial({ color: 0x2a1708, emissive: 0xffa04a, emissiveIntensity: 1.6, roughness: 0.6 }),
     windowDark: new THREE.MeshStandardMaterial({ color: 0x141a26, roughness: 0.3, metalness: 0.2 }),
@@ -560,7 +657,9 @@ export function buildTile(kit: Kit, props: Record<string, THREE.Object3D>, seed:
   for (let z = -2; z > -TILE; z -= 4 + rand() * 3) {
     const y = 4.6 + rand() * 0.6;
     glowing.push(new THREE.Matrix4().makeTranslation(-14.85, y, z), new THREE.Matrix4().makeTranslation(-14.85, y, z - 1.4));
-    spill(group, mats, -14.97, y - 0.4, z - 0.7, 1, 3.4, 0.75);
+    // A long, low band of light along the eave: a round pool behind a pair of lanterns read as
+    // a face with two glowing eyes once the upper storeys were clad in dark timber.
+    spill(group, mats, -14.97, y - 0.15, z - 0.7, 1, 4.4, 0.5, 0.42);
   }
   for (const z of [-8, -21, -34]) {
     const post = new THREE.Mesh(box(0.12, 2.6, 0.12, 1.2), kit.timber);

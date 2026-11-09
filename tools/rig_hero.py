@@ -1,7 +1,8 @@
 """Rig a baked, A-posed humanoid and give it a run cycle and a jump, all in code.
 
     blender -b --factory-startup --python-exit-code 1 -P tools/rig_hero.py -- \
-        in.glb out.glb [--height 1.6] [--facing +x] [--report report.json]
+        in.glb out.glb [--height 1.6] [--facing +x] [--report report.json] \
+        [--motion UAL1_Standard.glb [--run-clip Sprint_Loop] [--hold-clip Idle_Torch_Loop] [--upright 0.5]]
 
 1. Import the model (one mesh, as tools/lowpoly_bake.py writes it), turn it to face -Y
    (glTF +Z, the way a Three.js model faces), stand its feet on Z = 0 at the origin and scale
@@ -15,6 +16,15 @@
 4. Key two clips by aiming bones at target directions: "run", one 20-frame loop at 30 fps
    (two strides in 0.67 s), and "jump", 24 frames from the push off through a tuck to the
    reach for the landing, which the page plays across the hero's time in the air.
+   With --motion, the run is retargeted from a clip of Quaternius's Universal Animation
+   Library (CC0, quaternius.com) instead of keyed by hand: each bone aims along the line
+   between the same two joints of the source, which carries the motion over whatever the two
+   skeletons' proportions and rest poses, and the hips move by the source's offsets scaled by
+   leg length. The pole arm takes the held torch arm of --hold-clip, mirrored to the right.
+   --upright takes that share of the source's forward lean out of the spine, and the head
+   looks ahead rather than down: a full sprint lean hid the face and pointed the pole at the
+   roof. The report gives "run_speed": metres per second at time scale 1, measured from the
+   source's planted foot, so the page can set the clip's speed and the feet do not skate.
 5. Export the GLB with its skin and both clips, and print counts and joint positions as JSON.
 
 Blender 4.3 or newer. Never touches the input file.
@@ -33,7 +43,7 @@ argv = sys.argv[sys.argv.index("--") + 1 :] if "--" in sys.argv else []
 if len(argv) < 2:
     raise SystemExit("usage: rig_hero.py -- in.glb out.glb [--height M] [--facing +x|-x|+y|-y] [--report FILE]")
 src, dst = os.path.abspath(argv[0]), os.path.abspath(argv[1])
-opts = {"--height": "1.6", "--facing": "+x", "--report": ""}
+opts = {"--height": "1.6", "--facing": "+x", "--report": "", "--motion": "", "--run-clip": "Sprint_Loop", "--hold-clip": "Idle_Torch_Loop", "--upright": "0.5"}
 for i in range(2, len(argv) - 1, 2):
     if argv[i] not in opts:
         raise SystemExit(f"unknown option {argv[i]}")
@@ -270,7 +280,25 @@ for p in body.data.vertices:
             moved += 1
 print(f"thigh weights blended into the hips near the hem: {moved}")
 
+# The motion source, if any: import its armature alone (its meshes go).
+src_rig = None
+if opts["--motion"]:
+    before = set(bpy.data.objects)
+    src_fps = bpy.context.scene.render.fps
+    bpy.ops.object.select_all(action="DESELECT")
+    bpy.ops.import_scene.gltf(filepath=os.path.abspath(opts["--motion"]))
+    new = [o for o in bpy.data.objects if o not in before]
+    src_rig = next(o for o in new if o.type == "ARMATURE")
+    for o in new:
+        if o is not src_rig:
+            bpy.data.objects.remove(o)
+    src_rig.name = "MotionSource"
+    if not src_rig.animation_data:
+        src_rig.animation_data_create()
+    src_rig.animation_data.action = None
+
 # 4. Clips, by aiming bones in armature space.
+bpy.ops.object.select_all(action="DESELECT")
 bpy.context.view_layer.objects.active = rig
 bpy.ops.object.mode_set(mode="POSE")
 pb = rig.pose.bones
@@ -361,6 +389,97 @@ def pose_run(p):
         aim(f"{name}Hand", (fore + Vector((0, 0, -0.5))).normalized())
 
 
+# Retargeting: each of our bones aims along the line between two joints of the source.
+SOURCE_LINES = [
+    ("Hips", "pelvis", "spine_01"),
+    ("Spine", "spine_01", "spine_02"),
+    ("Spine1", "spine_02", "spine_03"),
+    ("Spine2", "spine_03", "neck_01"),
+    ("Neck", "neck_01", "Head"),
+]
+for n, x in (("Left", "l"), ("Right", "r")):
+    SOURCE_LINES += [
+        (f"{n}Shoulder", f"clavicle_{x}", f"upperarm_{x}"),
+        (f"{n}Arm", f"upperarm_{x}", f"lowerarm_{x}"),
+        (f"{n}ForeArm", f"lowerarm_{x}", f"hand_{x}"),
+        (f"{n}Hand", f"hand_{x}", f"middle_01_{x}"),
+        (f"{n}UpLeg", f"thigh_{x}", f"calf_{x}"),
+        (f"{n}Leg", f"calf_{x}", f"foot_{x}"),
+        (f"{n}Foot", f"foot_{x}", f"ball_{x}"),
+        (f"{n}ToeBase", f"ball_{x}", f"ball_leaf_{x}"),
+    ]
+POLE_ARM = ("RightShoulder", "RightArm", "RightForeArm", "RightHand")
+UPRIGHT_CHAIN = ("Hips", "Spine", "Spine1", "Spine2", "Neck")
+upright = float(opts["--upright"])
+
+
+def source_action(name):
+    for a in bpy.data.actions:
+        if a.name == name or a.name.startswith(name + "_"):
+            return a
+    raise SystemExit(f"no clip {name} in {opts['--motion']}: " + ", ".join(sorted(a.name for a in bpy.data.actions)))
+
+
+def source_joints(action, t):
+    """World positions of the source's joints `t` seconds into `action`, looped."""
+    f0, f1 = action.frame_range
+    f = f0 + (t * src_fps) % (f1 - f0)
+    src_rig.animation_data.action = action
+    bpy.context.scene.frame_set(int(f), subframe=f - int(f))
+    mw = src_rig.matrix_world
+    out = {b.name: mw @ b.head for b in src_rig.pose.bones}
+    hb = src_rig.pose.bones["Head"]
+    out["@head_up"] = (mw.to_3x3() @ hb.matrix.to_3x3() @ src_rig.data.bones["Head"].matrix_local.to_3x3().inverted()) @ Vector((0, 0, 1))
+    return out
+
+
+if src_rig:
+    src_rest = {b.name: src_rig.matrix_world @ b.head_local for b in src_rig.data.bones}
+    # Leg length as hip height above the ankle, ours against the source's.
+    leg_ratio = (hip_z - joints["LeftAnkle"][2]) / (src_rest["thigh_l"].z - src_rest["foot_l"].z)
+    run_src = source_action(opts["--run-clip"])
+    hold_src = source_action(opts["--hold-clip"])
+    run_len = (run_src.frame_range[1] - run_src.frame_range[0]) / src_fps
+
+
+def pose_run_motion(p):
+    # Sample first: changing frame re-evaluates our own action and would undo a cleared pose.
+    t = p * run_len
+    j = source_joints(run_src, t)
+    hold = source_joints(hold_src, t)
+    clear()
+    off = (j["pelvis"] - src_rest["pelvis"]) * leg_ratio
+    pb[P + "Hips"].location = hips_rest.inverted() @ off
+    for ours, a, b in SOURCE_LINES:
+        if ours in POLE_ARM:
+            # The torch arm is the source's left: mirror it across the body.
+            a, b = a[:-1] + "l", b[:-1] + "l"
+            d = hold[b] - hold[a]
+            d = Vector((-d.x, d.y, d.z))
+        else:
+            d = j[b] - j[a]
+        if ours in UPRIGHT_CHAIN:
+            d = Vector((d.x, d.y * (1 - upright), d.z))
+        aim(ours, d)
+        if ours == "Neck":
+            # Eyes ahead: keep the source head's sway from side to side, not its nod.
+            hu = j["@head_up"]
+            aim("Head", Vector((hu.x * 0.6, -0.06, 1.0)))
+
+
+def source_run_speed():
+    """Ground speed the source clip implies: how fast a planted foot slides back."""
+    n = 48
+    ys, zs = [], []
+    for k in range(n):
+        jj = source_joints(run_src, k * run_len / n)
+        ys.append(jj["ball_l"].y)
+        zs.append(jj["ball_l"].z)
+    floor = min(zs)
+    v = [(ys[(k + 1) % n] - ys[k]) / (run_len / n) for k in range(n) if zs[k] < floor + 0.02 and zs[(k + 1) % n] < floor + 0.02]
+    return sum(v) / len(v) * leg_ratio if v else 0.0
+
+
 # The jump, as three key poses blended smoothly: the push off the roof's edge, a tuck at
 # the top, and the reach for the next roof. Each value is (take-off, apex, landing).
 JUMP_KEYS = {
@@ -424,8 +543,16 @@ rig.animation_data_create()
 run = bpy.data.actions.new("run")
 rig.animation_data.action = run
 FRAMES = 20
+if src_rig:
+    # As many frames at 30 fps as the source loop lasts.
+    FRAMES = max(8, round(run_len * 30))
+    run_speed = source_run_speed()
+    print(f"retargeting {run_src.name} ({run_len:.3f} s), leg ratio {leg_ratio:.3f}, ground speed at 1x {run_speed:.2f} m/s")
 for f in range(FRAMES + 1):
-    pose_run((f % FRAMES) / FRAMES)
+    if src_rig:
+        pose_run_motion((f % FRAMES) / FRAMES)
+    else:
+        pose_run((f % FRAMES) / FRAMES)
     key_all(f + 1)
 run.use_fake_user = True
 
@@ -453,6 +580,8 @@ for act in (run, jump):
     strip.frame_end = act.frame_end
 clear()
 bpy.ops.object.mode_set(mode="OBJECT")
+if src_rig:
+    bpy.data.objects.remove(src_rig)
 
 # 5. Export.
 bpy.ops.object.select_all(action="DESELECT")
@@ -475,6 +604,9 @@ report = {
     "unweighted_before_fill": unweighted,
     "joints": {k: np.round(j, 4).tolist() for k, j in joints.items()},
 }
+if src_rig is not None or opts["--motion"]:
+    report["run_source"] = opts["--run-clip"]
+    report["run_speed"] = round(run_speed, 3)
 print(json.dumps(report))
 if opts["--report"]:
     with open(opts["--report"], "w") as fh:

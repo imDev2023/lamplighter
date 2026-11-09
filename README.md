@@ -14,7 +14,7 @@ No game code is written until the owner approves the samples, judged against Ken
 2. **The hero's 4-view sheets** (done, one per style), cut into the views image-to-3D reads.
    ![Stylised views: front, left, back, right](samples/views-stylised.jpg)
    ![Painted views: front, left, back, right](samples/views-painted.jpg)
-3. **The hero in 3D** (done, both styles): lifted with Tripo H3.1 from the four views, simplified to about 24,000 triangles with its own textures, rigged with Mixamo bone names and given a run cycle and an animated jump in code; 459 KB and 652 KB compressed.
+3. **The hero in 3D** (done, both styles): lifted with Tripo H3.1 from the four views, simplified to about 24,000 triangles with its own textures, rigged with Mixamo bone names, given a sprint retargeted from Quaternius's CC0 Universal Animation Library and an animated jump in code; 463 KB and 656 KB compressed.
    Look at them with `npm run dev`, then `/check.html?src=/models/hero-stylised.glb&src=/models/hero-painted.glb&gap=1.2&clip=run`.
 4. **The hero running over a dressed stretch of rooftops** (done, both styles), in Three.js at 390 x 844: [sample.html](sample.html) with [src/sample](src/sample).
    One 40 m stretch, tiled ahead of the runner: houses, roofs, quays, canal walls and an arched bridge built in code with Poly Haven's CC0 textures, five CC0 props dressed in clusters, the canal mirror and night sky from Lantern River.
@@ -24,6 +24,10 @@ No game code is written until the owner approves the samples, judged against Ken
    60 fps in headless Chrome on this Mac, about 145 draw calls and 720,000 triangles (the water's mirror draws the scene twice).
    Clips: [stylised](samples/sample4-stylised.mp4) and [painted](samples/sample4-painted.mp4), 12 s each.
    ![Sample 4: three frames stylised, three painted](samples/sample4-frames.jpg)
+5. **Sample 5** (2026-11-09), the owner's second round of fixes on sample 4: a real lamp hanging from the pole instead of a spark, a timber catwalk along every ridge like a railway track, dark boarded gable ends so the camera's pass over each alley no longer shows stairs rising, the evening a little darker with the slope under the hero lit by the sky opposite the sunset, a sprint retargeted from Quaternius's CC0 library, and a look pass on the town (plaster and roof colours per house, timber-clad upper storeys, shutters, cloth shop banners, chimneys).
+   60 fps in headless Chrome on this Mac, about 225 draw calls and 790,000 triangles.
+   Clips: [stylised](samples/sample5-stylised.mp4) and [painted](samples/sample5-painted.mp4), 12 s each.
+   ![Sample 5: three frames stylised, three painted](samples/sample5-frames.jpg)
 
 Run the samples with `npm install` and `npm run dev`, then open `/sample.html` (add `?style=painted`, `&debug` for the frame rate, `&t=6` to hold a moment).
 
@@ -34,10 +38,11 @@ Run the samples with `npm install` and `npm run dev`, then open `/sample.html` (
 - `node tools/fal-upload.ts <file>`: upload one of our own files to fal's storage as a reference image (free).
 - `python3 -I tools/cut_views.py <sheet> <out_dir>`: cut a 4-view sheet into front, left, back and right views on a flat canvas (usage in its docstring).
 - `tools/simplify.sh in.glb out.glb`: cut a single-atlas generated model (a Tripo output) to a phone budget, keeping its own UVs and textures.
-- `tools/rig_hero.py`: rig an A-posed humanoid in headless Blender with Mixamo bone names and key a run cycle and a jump pose (usage in its docstring).
+- `tools/rig_hero.py`: rig an A-posed humanoid in headless Blender with Mixamo bone names and key a run cycle and a jump pose, or retarget the run from Quaternius's Universal Animation Library with `--motion` (usage in its docstring).
 - `node tools/polyhaven.ts <asset> [1k|2k]`: download a CC0 Poly Haven texture set into `public/textures`.
 - `node tools/polyhaven-model.ts <asset> [1k|2k]`: download a CC0 Poly Haven model as one compressed GLB in `public/models/props`.
 - `node tools/record.mjs <url> <out.mp4> [seconds] [fps]`: record the sample page to an MP4 on a fixed clock, frame by frame.
+- `node tools/frames.mjs <url> <out dir> <from s> <to s> [every s]`: stills of the sample page on the same clock, with a contact sheet, to look at a moment of a clip frame by frame.
 - `check.html`: a Three.js page that loads GLBs side by side, plays a clip and frames a set view (parameters in `src/check/main.ts`).
 - `tools/lowpoly_bake.py`: cut a model with several materials or overlapping UVs to a phone budget by baking in headless Blender (usage in its docstring); its cage suits props, not faces.
 
