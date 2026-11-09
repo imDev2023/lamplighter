@@ -9,7 +9,7 @@ Where the work stands and what is next lives in issue #7's Status section and it
 - No game code past the samples until the owner approves them (owner, 2026-11-08).
   The samples are: mood stills, the hero's 4-view sheet, the hero in 3D, and the hero running on one dressed stretch of rooftop in Three.js at 390 x 844.
 - The quality bar is Kensei's Small Hours level (x-gaming's `sources/2026-11-07-kensei-opus-blender-unity.md`), with Sumiro's look as the other reference.
-- The art style is decided by the mood stills: stylised night or painted (watercolour and ink).
+- Both styles go forward until the owner picks one on #7: stylised, and painted (watercolour and ink, a screen pass in `src/sample/inkwash.ts`).
 
 ## Rules
 
