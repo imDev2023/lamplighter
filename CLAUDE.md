@@ -33,6 +33,8 @@ Where the work stands and what is next lives in issue #7's Status section and it
 - Retarget runs from Quaternius's Universal Animation Library (CC0) with `tools/rig_hero.py --motion raw/ual/UAL1_Standard.glb`, not Mixamo: Adobe's terms do not let Mixamo motion be relicensed CC0 in this public repo (owner, 2026-11-09).
   The pack comes free from quaternius.itch.io through "No thanks, just take me to the downloads"; the GLB lives in the gitignored `raw/ual/`.
   Put the report's `run_speed` for each style into `RUN_SPEED_AT_1X` in `src/sample/main.ts`, or the feet skate.
+- The phone preview is the Vercel project `lamplighter` (scope `imdev2023-gmailcoms-projects`), behind Vercel sign-in: deploy with `vercel deploy` and never `--prod`, then check each printed URL returns 302, not 200.
+  The project's first deploy went to production with a public alias, `lamplighter-livid.vercel.app`, removed within minutes (2026-11-09); the owner wants nothing public.
 - To look at a moment of a clip, use `node tools/frames.mjs` rather than reloading the page with `?t=` for each frame.
 - A portrait chase camera sees only about 34 degrees across, and only what lies ahead: lanterns lit beside or behind the hero are never on screen, so the lit line runs forward from each post like a fuse (2026-11-08).
 - Record clips with `node tools/record.mjs` (the page's `&record` mode steps a fixed clock), into the gitignored `media/`.
